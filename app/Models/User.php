@@ -23,7 +23,8 @@ class User extends Authenticatable
         'password',
         'email_verification_code',
         'email_verified_at',
-        'email_verification_expires_at'
+        'email_verification_expires_at',
+        'role_id'
     ];
 
     /**
@@ -51,5 +52,9 @@ class User extends Authenticatable
         return $this->hasOne(Profile::class);
     }
 
+    public function role()
+    {
+        return $this->hasOne(Roles::class, 'user_id');
+    }
 
 }

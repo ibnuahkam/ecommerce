@@ -17,13 +17,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
         Route::post('/login', [AuthController::class, 'login']);
         Route::post('/resend-code', [AuthController::class, 'resendCode']);
-        Route::post('/v1/auth/login', [AuthController::class, 'login']);
-        Route::post('/update/profile', [AuthController::class, 'update']);
     });
 
      Route::middleware('auth:sanctum')->prefix('profile')->group(function () {
         Route::post('/update/avatar', [ProfileController::class, 'updateAvatar']);
         Route::get('/get/profile', [ProfileController::class, 'getProfile']);
+        Route::post('/update', [AuthController::class, 'update']);
     });
 
 });

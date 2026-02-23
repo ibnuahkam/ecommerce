@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Profile;   // ✅ ini yang benar
+use App\Models\Profile;
+use App\Models\Roles;
 use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller

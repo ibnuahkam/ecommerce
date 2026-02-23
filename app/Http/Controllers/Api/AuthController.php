@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Profile;
+use App\Models\Roles;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -15,39 +16,44 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        // ✅ validasi
         $request->validate([
             'name' => 'required|string|max:100',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6'
         ]);
 
-        // ✅ generate kode OTP
-        $code = rand(100000, 999999);
+        $codeOtp = rand(100000, 999999);
 
-        // ✅ create user
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'email_verification_code' => $code,
-            'email_verification_expires_at' => now()->addMinutes(10)
+            'email_verification_code' => $codeOtp,
+            'email_verification_expires_at' => now()->addMinutes(10),
         ]);
 
-        // ✅ kirim email
+        $role = Roles::create([
+            'user_id' => $user->id,
+            'code' => 'buyer'
+        ]);
+
+        $update = User::where('id', $user->id)->update([
+            'role_id' => $role->id
+        ]);
+
         Mail::to($user->email)->send(
-            new SendVerificationCodeMail($code)
+            new SendVerificationCodeMail($codeOtp)
         );
 
-        // ✅ response API
         return response()->json([
             'success' => true,
-            'message' => 'Register berhasil. Kode verifikasi dikirim ke email.',
+            'message' => 'Register berhasil.',
             'data' => [
                 'user_id' => $user->id,
-                'email' => $user->email
+                'email' => $user->email,
+                'role' => $role->code
             ]
-        ], 201);
+        ], 200);
     }
 
     public function verifyEmail(Request $request)
@@ -144,29 +150,26 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
+        $role = $user->role;
 
-        // ❌ user tidak ada
         if (!$user) {
             return response()->json([
                 'message' => 'Email atau password salah'
             ], 401);
         }
 
-        // ❌ password salah
         if (!Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'Email atau password salah'
             ], 401);
         }
 
-        // ❌ BELUM VERIFY EMAIL
         if (!$user->email_verified_at) {
             return response()->json([
                 'message' => 'Email belum diverifikasi'
             ], 403);
         }
 
-        // ✅ buat token
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -177,6 +180,10 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email
+            ],
+            'role' => [
+                'id' => $role->id,
+                'code' => $role->code
             ]
         ]);
 
@@ -185,7 +192,6 @@ class AuthController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:100',
             'province' => 'nullable|string|max:100',
@@ -196,8 +202,10 @@ class AuthController extends Controller
             'gender' => 'nullable|string|max:20'
         ]);
 
+        $user = $request->user(); // ambil user dari token
+
         $profile = Profile::firstOrCreate([
-            'user_id' => $request->user_id
+            'user_id' => $user->id
         ]);
 
         $profile->update($request->only([
@@ -217,5 +225,4 @@ class AuthController extends Controller
             'data' => $profile->fresh()
         ]);
     }
-
 }
