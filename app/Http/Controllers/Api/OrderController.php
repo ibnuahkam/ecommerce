@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use Midtrans\Snap;
+use Midtrans\Config;
 
 
 class OrderController extends Controller
@@ -64,6 +66,28 @@ class OrderController extends Controller
                 'subtotal' => $subtotal
             ]);
 
+            Config::$serverKey = env('SB-Mid-server-wnqUdfRZ7q0ZuIILkMJt6_8K');
+            Config::$isProduction = false;
+            Config::$isSanitized = true;
+            Config::$is3ds = true;
+
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $order->uuid,
+                    'gross_amount' => (int) $subtotal,
+                ],
+                'customer_details' => [
+                    'first_name' => $user->name,
+                    'email' => $user->email,
+                ],
+            ];
+
+            $snapToken = Snap::getSnapToken($params);
+
+            $order->update([
+                'snap_token' => $snapToken
+            ]);
+
             DB::commit();
 
             return response()->json([
@@ -71,8 +95,7 @@ class OrderController extends Controller
                 'message' => 'Order created successfully',
                 'data' => [
                     'order_uuid' => $order->uuid,
-                    'total_amount' => $order->total_amount,
-                    'status' => $order->status
+                    'snap_token' => $snapToken
                 ]
             ]);
 

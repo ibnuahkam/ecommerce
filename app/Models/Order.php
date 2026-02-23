@@ -26,6 +26,15 @@ class Order extends Model implements AuditableContract
         static::creating(function ($order) {
             $order->uuid = (string) Str::uuid();
         });
+
+        static::creating(function ($order) {
+
+            $order->uuid = (string) \Str::uuid();
+
+            $lastId = self::max('id') + 1;
+
+            $order->order_number = 'INV-' . date('Ymd') . '-' . str_pad($lastId, 5, '0', STR_PAD_LEFT);
+        });
     }
 
     public function items()
@@ -37,4 +46,5 @@ class Order extends Model implements AuditableContract
     {
         return $this->belongsTo(User::class, 'buyer_id');
     }
+
 }
