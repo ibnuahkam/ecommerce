@@ -19,10 +19,13 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required|string|max:100',
             'email' => 'required|email|unique:users',
-            'password' => 'required|min:6'
+            'password' => 'required|min:6',
+            'role_code' => 'required|exists:roles,code'
         ]);
 
         $codeOtp = rand(100000, 999999);
+
+        $role = Roles::where('code', $request->role_code)->first();
 
         $user = User::create([
             'name' => $request->name,
@@ -30,14 +33,6 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'email_verification_code' => $codeOtp,
             'email_verification_expires_at' => now()->addMinutes(10),
-        ]);
-
-        $role = Roles::create([
-            'user_id' => $user->id,
-            'code' => 'buyer'
-        ]);
-
-        $update = User::where('id', $user->id)->update([
             'role_id' => $role->id
         ]);
 
@@ -149,16 +144,11 @@ class AuthController extends Controller
             'password' => 'required'
         ]);
 
-        $user = User::where('email', $request->email)->first();
-        $role = $user->role;
+        $user = User::with(['role:id,code'])
+            ->where('email', $request->email)
+            ->first();
 
-        if (!$user) {
-            return response()->json([
-                'message' => 'Email atau password salah'
-            ], 401);
-        }
-
-        if (!Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'Email atau password salah'
             ], 401);
@@ -179,17 +169,16 @@ class AuthController extends Controller
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
-                'email' => $user->email
-            ],
-            'role' => [
-                'id' => $role->id,
-                'code' => $role->code
+                'email' => $user->email,
+                'role' => [
+                    'id' => $user->role->id,
+                    'code' => $user->role->code
+                ]
             ]
         ]);
-
     }
 
-    public function update(Request $request)
+    public function updated(Request $request)
     {
         $request->validate([
             'address' => 'nullable|string',
