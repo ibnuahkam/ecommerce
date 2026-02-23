@@ -66,7 +66,7 @@ class OrderController extends Controller
                 'subtotal' => $subtotal
             ]);
 
-            Config::$serverKey = env('SB-Mid-server-wnqUdfRZ7q0ZuIILkMJt6_8K');
+            Config::$serverKey = env('MIDTRANS_SERVER_KEY');
             Config::$isProduction = false;
             Config::$isSanitized = true;
             Config::$is3ds = true;
