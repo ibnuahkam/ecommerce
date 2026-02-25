@@ -15,14 +15,22 @@ class Product extends Model implements AuditableContract
     protected $table = 'products';
 
     protected $fillable = [
-        'name',
         'uuid',
+        'name',
+        'slug',
         'description',
         'price',
         'stock',
         'thumbnail',
         'user_id',
         'role_id',
+        'category_id',
+        'weight',
+        'length',
+        'width',
+        'height',
+        'status',
+        'sold_count'
     ];
 
     protected static function boot()
@@ -30,7 +38,13 @@ class Product extends Model implements AuditableContract
         parent::boot();
 
         static::creating(function ($product) {
+
             $product->uuid = (string) Str::uuid();
+
+            // Auto generate slug kalau belum ada
+            if (!$product->slug) {
+                $product->slug = Str::slug($product->name) . '-' . Str::random(5);
+            }
         });
     }
 
@@ -38,6 +52,8 @@ class Product extends Model implements AuditableContract
     {
         return 'uuid';
     }
+
+    // 🔥 RELATIONS
 
     public function images()
     {
@@ -52,5 +68,10 @@ class Product extends Model implements AuditableContract
     public function role()
     {
         return $this->belongsTo(Roles::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 }

@@ -16,8 +16,14 @@ class ProductController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'price' => 'required|numeric',
-            'stock' => 'required|integer',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'category_id' => 'required|exists:categories,id',
+            'weight' => 'required|integer|min:1',
+            'length' => 'nullable|integer|min:1',
+            'width' => 'nullable|integer|min:1',
+            'height' => 'nullable|integer|min:1',
+            'status' => 'nullable|in:draft,active,inactive',
             'thumbnail' => 'required|image',
             'images.*' => 'nullable|image'
         ]);
@@ -25,7 +31,6 @@ class ProductController extends Controller
         DB::beginTransaction();
 
         try {
-
             $thumbnailPath = $request->file('thumbnail')
                 ->store('products/thumbnails', 'public');
 
@@ -36,7 +41,14 @@ class ProductController extends Controller
                 'description' => $request->description,
                 'price' => $request->price,
                 'stock' => $request->stock,
-                'thumbnail' => $thumbnailPath
+                'category_id' => $request->category_id,
+                'weight' => $request->weight,
+                'length' => $request->length,
+                'width' => $request->width,
+                'height' => $request->height,
+                'status' => $request->status ?? 'draft',
+                'thumbnail' => $thumbnailPath,
+                'sold_count' => 0
             ]);
 
             if ($request->hasFile('images')) {
@@ -55,7 +67,7 @@ class ProductController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Product created successfully',
-                'data' => $product->load('images')
+                'data' => $product->load('images', 'category')
             ], 201);
 
         } catch (\Exception $e) {
@@ -117,38 +129,59 @@ class ProductController extends Controller
         $product->load([
             'images:id,product_id,image_path',
             'user.profile',
-            'role:id,code'
+            'role:id,code',
+            'category:id,name,slug'
         ]);
 
         $data = [
             'uuid' => $product->uuid,
+            'slug' => $product->slug,
             'name' => $product->name,
             'description' => $product->description,
             'price' => $product->price,
             'stock' => $product->stock,
+            'status' => $product->status,
+            'sold_count' => $product->sold_count,
+
+            'category' => $product->category ? [
+                'id' => $product->category->id,
+                'name' => $product->category->name,
+                'slug' => $product->category->slug,
+            ] : null,
+
+            'shipping' => [
+                'weight' => $product->weight,
+                'length' => $product->length,
+                'width' => $product->width,
+                'height' => $product->height,
+            ],
+
             'thumbnail_url' => $product->thumbnail
                 ? asset('storage/' . $product->thumbnail)
                 : null,
+
             'images' => $product->images->map(function ($image) {
                 return [
                     'id' => $image->id,
                     'image_url' => asset('storage/' . $image->image_path)
                 ];
             }),
-            'seller' => [
+
+            'seller' => $product->user ? [
                 'id' => $product->user->id,
                 'name' => $product->user->name,
                 'email' => $product->user->email,
                 'profile' => [
-                    'city' => $product->user->profile->city ?? null,
-                    'province' => $product->user->profile->province ?? null,
-                    'phone' => $product->user->profile->phone ?? null,
-                    'address' => $product->user->profile->address ?? null,
-                    'avatar' => $product->user->profile->avatar
+                    'city' => optional($product->user->profile)->city,
+                    'province' => optional($product->user->profile)->province,
+                    'phone' => optional($product->user->profile)->phone,
+                    'address' => optional($product->user->profile)->address,
+                    'avatar' => optional($product->user->profile)->avatar
                         ? asset('storage/' . $product->user->profile->avatar)
                         : null,
                 ]
-            ],
+            ] : null,
+
             'created_at' => $product->created_at
                 ->timezone('Asia/Jakarta')
                 ->format('Y-m-d H:i:s'),

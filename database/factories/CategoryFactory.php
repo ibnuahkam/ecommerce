@@ -1,14 +1,13 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Factories;
 
-use Illuminate\Database\Seeder;
-use App\Models\Category;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
-class DatabaseSeeder extends Seeder
+class CategoryFactory extends Factory
 {
-    public function run()
+    public function definition()
     {
         $categories = [
             'Smartphone',
@@ -26,11 +25,11 @@ class DatabaseSeeder extends Seeder
             'Perlengkapan Rumah Tangga',
         ];
 
-        foreach ($categories as $category) {
-            Category::create([
-                'name' => $category,
-                'slug' => Str::slug($category),
-            ]);
-        }
+        $name = $this->faker->unique()->randomElement($categories);
+
+        return [
+            'name' => $name,
+            'slug' => Str::slug($name),
+        ];
     }
 }

@@ -104,8 +104,9 @@ class OrderController extends Controller
             DB::rollBack();
 
             return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
+                'error_message' => $e->getMessage(),
+                'error_line' => $e->getLine(),
+                'error_file' => $e->getFile()
             ], 500);
         }
     }
