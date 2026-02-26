@@ -35,9 +35,5 @@ Route::prefix('v1')->group(function () {
         Route::post('/payment/callback', [OrderController::class, 'callback']);
     });
 
-    Route::middleware('auth:sanctum')->prefix('category')->group(function () {
         Route::get('/categories', [CategoryController::class, 'index']);
-    });
-
-
 });
